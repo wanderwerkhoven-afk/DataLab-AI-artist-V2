@@ -2,48 +2,46 @@
 
 Browser-first AI Artist for DataLab - Hogeschool van Amsterdam.
 
-## Local installation (real AI)
+## Local installation
 
-The production kiosk runs the browser frontend and the AI backend on the same Windows computer.
+The base application is deliberately simple: browser frontend + local FastAPI backend + Stable Diffusion 1.5 img2img.
 
 ### Requirements
 - Windows
 - Python 3.11
 - Node.js + npm
-- NVIDIA GPU + current NVIDIA driver recommended for the full FaceID pipeline
+- No C++ Build Tools required for the base application
+- NVIDIA GPU is optional for the base application; CPU fallback is supported but slower
 
 ### First installation
 
-From the repository root:
+From the repository root, run:
 
 ```bat
-cd src
-python -m pip install -r requirements.txt
-python download.py
-cd ..
-```
-
-Then double-click:
-
-```
 start-datalab.bat
 ```
 
-The launcher starts:
+The launcher creates an isolated Python 3.11 virtual environment, installs the base AI dependencies, downloads Stable Diffusion 1.5, installs the frontend dependencies and starts:
 - frontend: http://localhost:3000
 - AI API: http://127.0.0.1:5000
 - browser automatically after startup
 
 The camera is handled directly by the browser. Allow camera permission when asked.
 
+## FaceID extension
+
+InsightFace + IP-Adapter FaceID are intentionally not part of the base installation. They are an optional extension for the final DataLab computer with an NVIDIA GPU. The base application must keep working when FaceID is not installed.
+
 ## Development
+
+Backend:
 
 ```bat
 cd src
-python run.py
+..\.venv\Scripts\python.exe run.py
 ```
 
-In a second terminal:
+Frontend in a second terminal:
 
 ```bat
 cd web
