@@ -22,6 +22,12 @@ const presets: Record<Preset,{strength:number; guidance:number; label:string; de
 
 const Arrow = ({back=false}:{back?:boolean}) => <span aria-hidden>{back ? "←" : "→"}</span>;
 
+const photoSimilarityLabel = (value:number) =>
+  value <= .33 ? "Lijkt veel op de foto" : value <= .55 ? "Een beetje anders" : "Heel anders";
+
+const artisticLabel = (value:number) =>
+  value <= 5 ? "Rustig" : value <= 9 ? "Kunstig" : "Heel kunstig";
+
 export default function Home() {
   const cameraRef=useRef<CameraHandle>(null);
   const [photo,setPhoto]=useState<string|null>(null);
@@ -60,8 +66,15 @@ export default function Home() {
 
   const getPhoto=()=>{
     const captured=cameraRef.current?.capture();
-    if(!captured) return;
-    setPhoto(captured); setOriginalPhoto(captured); setStopCamera(true); setStep(2);
+    if(captured){
+      setPhoto(captured); setOriginalPhoto(captured); setStopCamera(true);
+    }
+    setStep(2);
+  };
+
+  const previewStep=(nextStep:number)=>{
+    if(nextStep===2 && !selectedId) setSelectedId("cartoon");
+    setStep(nextStep);
   };
 
   const choosePreset=(key:Preset)=>{
@@ -97,6 +110,20 @@ export default function Home() {
 
   const labels=["Photo","Style","Adjust","Result"];
 
+  if(step===4 && !generatedPhoto){
+    return <main className="result-page">
+      <header className="topbar"><div className="brand"><span className="brand-mark">AI</span><span>DataLab <b>AI Artist</b></span></div><button className="ghost-btn" onClick={reset}>Start over ↻</button></header>
+      <section className="result-shell">
+        <div className="result-heading"><div><span className="eyebrow">STEP 04 · PREVIEW MODE</span><h1>This is where your result appears</h1><p>You can review the complete frontend without starting the AI backend.</p></div></div>
+        <div className="comparison-grid">
+          <figure><div className="image-label">Original</div><div className="result-placeholder">Original photo<br/><small>Captured image will appear here</small></div></figure>
+          <figure><div className="image-label accent">AI generated</div><div className="result-placeholder result-placeholder-ai">AI result<br/><small>Generated artwork will appear here</small></div></figure>
+        </div>
+        <div className="result-actions"><button className="secondary-btn" onClick={()=>setStep(3)}>← Edit settings</button><button className="secondary-btn" onClick={reset}>Back to start</button></div>
+      </section>
+    </main>;
+  }
+
   if(fullscreenResult && generatedPhoto){
     return <main className="fullscreen-result" onClick={()=>setFullscreenResult(false)}>
       <button className="fullscreen-close" onClick={()=>setFullscreenResult(false)} aria-label="Close fullscreen">×</button>
@@ -105,13 +132,13 @@ export default function Home() {
     </main>;
   }
 
-  if(step===4 && originalPhoto && generatedPhoto){
+  if(step===4 && generatedPhoto){
     return <main className="result-page">
       <header className="topbar"><div className="brand"><span className="brand-mark">AI</span><span>DataLab <b>AI Artist</b></span></div><button className="ghost-btn" onClick={reset}>Start over ↻</button></header>
       <section className="result-shell">
         <div className="result-heading"><div><span className="eyebrow">CREATION COMPLETE</span><h1>Your image is ready</h1><p>{selected?.title} · {presets[preset].label} transformation</p></div></div>
         <div className="comparison-grid">
-          <figure><div className="image-label">Original</div><img src={originalPhoto} alt="Original photo"/></figure>
+          <figure><div className="image-label">Original</div>{originalPhoto?<img src={originalPhoto} alt="Original photo"/>:<div className="result-placeholder">Preview mode<br/><small>No photo captured</small></div>}</figure>
           <figure><div className="image-label accent">AI generated</div><img src={generatedPhoto} alt="AI generated result"/></figure>
         </div>
         <div className="result-actions"><button className="secondary-btn" onClick={()=>setStep(3)}>← Edit settings</button><button className="primary-btn" onClick={()=>setFullscreenResult(true)}>View fullscreen ⛶</button><button className="secondary-btn" onClick={downloadResult}>Download image ↓</button><button className="secondary-btn" onClick={reset}>New photo</button></div>
@@ -130,14 +157,14 @@ export default function Home() {
     </section>
 
     <aside className="control-panel">
-      <div className="stepper">{labels.map((label,i)=>{const n=i+1; const active=step===n; const done=step>n; return <div className={"step "+(active?"active ":"")+(done?"done":"")} key={label}><span>{done?"✓":String(n).padStart(2,"0")}</span><small>{label}</small></div>})}</div>
+      <div className="stepper">{labels.map((label,i)=>{const n=i+1; const active=step===n; const done=step>n; return <button type="button" className={"step step-button "+(active?"active ":"")+(done?"done":"")} key={label} onClick={()=>previewStep(n)}><span>{done?"✓":String(n).padStart(2,"0")}</span><small>{label}</small></button>})}</div>
 
       <div className="control-content">
         {step===1 && <div className="screen-block"><span className="eyebrow">STEP 01</span><h1>Turn a photo into art.</h1><p className="lead">Take a photo to start creating a unique AI transformation.</p><div className="tip-card"><span className="tip-icon">◎</span><div><b>For the best result</b><p>Use a clear, well-lit scene and keep the camera steady.</p></div></div></div>}
 
         {step===2 && <div className="screen-block"><span className="eyebrow">STEP 02</span><h1>Choose a style</h1><p className="lead">Pick the visual direction for your transformation.</p><div className="style-grid">{styles.map(s=><button key={s.id} className={"style-card "+(selectedId===s.id?"selected":"")} onClick={()=>setSelectedId(s.id)}><div className="style-art"><img src={s.image} alt={s.title+" style reference"} loading="lazy"/></div><div><b>{s.title}</b><small>{s.id==="winter"?"Scene effect":"Art style"}</small></div>{selectedId===s.id&&<i className="check">✓</i>}</button>)}</div></div>}
 
-        {step===3 && <div className="screen-block">{generationError&&<p className="generation-error">{generationError}</p>}<span className="eyebrow">STEP 03</span><h1>How creative should AI be?</h1><p className="lead">Choose how closely the result should follow your original photo.</p><div className="preset-list">{(Object.keys(presets) as Preset[]).map(key=><button key={key} onClick={()=>choosePreset(key)} className={"preset-card "+(preset===key?"selected":"")}><span className="preset-dot"/><div><b>{presets[key].label}</b><small>{presets[key].description}</small></div>{preset===key&&<span className="preset-check">✓</span>}</button>)}</div><button className="advanced-toggle" onClick={()=>setAdvanced(!advanced)}>Advanced settings <span>{advanced?"−":"+"}</span></button>{advanced&&<div className="advanced-box"><label><span>Transformation strength <b>{strength.toFixed(2)}</b></span><input type="range" min="0" max="1" step=".01" value={strength} onChange={e=>setStrength(+e.target.value)}/></label><label><span>Prompt guidance <b>{guidanceScale.toFixed(1)}</b></span><input type="range" min="1" max="15" step=".1" value={guidanceScale} onChange={e=>setGuidanceScale(+e.target.value)}/></label></div>}</div>}
+        {step===3 && <div className="screen-block">{generationError&&<p className="generation-error">{generationError}</p>}<span className="eyebrow">STEP 03</span><h1>How creative should AI be?</h1><p className="lead">Choose how closely the result should follow your original photo.</p><div className="preset-list">{(Object.keys(presets) as Preset[]).map(key=><button key={key} onClick={()=>choosePreset(key)} className={"preset-card "+(preset===key?"selected":"")}><span className="preset-dot"/><div><b>{presets[key].label}</b><small>{presets[key].description}</small></div>{preset===key&&<span className="preset-check">✓</span>}</button>)}</div><button className="advanced-toggle" onClick={()=>setAdvanced(!advanced)}>Advanced settings <span>{advanced?"−":"+"}</span></button>{advanced&&<div className="advanced-box"><label><span>Hoe erg gaat het op de foto lijken? <b>{strength.toFixed(2)} · {photoSimilarityLabel(strength)}</b></span><input type="range" min="0" max="1" step=".01" value={strength} onChange={e=>setStrength(+e.target.value)}/></label><label><span>Hoe kunstig gaat het worden? <b>{guidanceScale.toFixed(1)} · {artisticLabel(guidanceScale)}</b></span><input type="range" min="1" max="15" step=".1" value={guidanceScale} onChange={e=>setGuidanceScale(+e.target.value)}/></label></div>}</div>}
       </div>
 
       <div className="bottom-actions">
