@@ -1,11 +1,10 @@
---index-url https://download.pytorch.org/whl/cu124
---extra-index-url https://pypi.org/simple
+--extra-index-url https://download.pytorch.org/whl/cu124
 
 torch
 torchvision
 torchaudio
-diffusers>=0.30.0
-transformers
+diffusers>=0.30.0,<0.40
+transformers<5
 accelerate
 fastapi
 uvicorn
