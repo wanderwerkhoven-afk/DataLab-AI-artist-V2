@@ -1,23 +1,20 @@
 from fastapi import APIRouter, File, Form, UploadFile
 from fastapi.responses import StreamingResponse
-from services.camera_service import generate_frames, get_last_photo  
-from services.generator_service import generate_image, get_system_status  
+from services.camera_service import generate_frames, get_last_photo
+from services.generator_service import generate_image, get_system_status
 
 api_router = APIRouter()
-
-@api_router.get('/status')
-async def system_status():
-    return get_system_status()
 
 @api_router.get("/status")
 async def system_status():
     return get_system_status()
 
-@api_router.get('/video')
+# Legacy camera endpoints are kept for compatibility. V2 uses the browser camera.
+@api_router.get("/video")
 async def video_feed():
-    return StreamingResponse(generate_frames(), media_type='multipart/x-mixed-replace; boundary=frame')
+    return StreamingResponse(generate_frames(), media_type="multipart/x-mixed-replace; boundary=frame")
 
-@api_router.get('/take_photo')
+@api_router.get("/take_photo")
 async def take_photo():
     return get_last_photo()
 
@@ -26,6 +23,6 @@ async def generate_image_endpoint(
     image: UploadFile = File(...),
     tags: str = Form(...),
     strength: float = Form(...),
-    guidance_scale: float = Form(...)
+    guidance_scale: float = Form(...),
 ):
     return await generate_image(image, tags, strength, guidance_scale)
