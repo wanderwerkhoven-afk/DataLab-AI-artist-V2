@@ -10,6 +10,14 @@ echo ========================================
 where py >nul 2>nul || (echo Python launcher not found. Install Python 3.11 first.& pause & exit /b 1)
 py -3.11 --version >nul 2>nul || (echo Python 3.11 is required. Install Python 3.11 and try again.& pause & exit /b 1)
 where npm >nul 2>nul || (echo Node.js/npm not found. Install Node.js first.& pause & exit /b 1)
+where cl >nul 2>nul || (
+  echo Microsoft C++ Build Tools are required by InsightFace.
+  echo Install "Desktop development with C++" in Visual Studio Build Tools,
+  echo then run this launcher again.
+  start "" "https://visualstudio.microsoft.com/visual-cpp-build-tools/"
+  pause
+  exit /b 1
+)
 
 if not exist ".venv\\Scripts\\python.exe" (
   echo Creating Python 3.11 virtual environment...
