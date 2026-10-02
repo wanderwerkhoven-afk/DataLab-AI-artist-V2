@@ -1,7 +1,7 @@
 "use client";
 
-import { useEffect, useMemo, useState } from "react";
-import Camera from "@/components/Camera";
+import { useEffect, useMemo, useRef, useState } from "react";
+import Camera, { CameraHandle } from "@/components/Camera";
 
 type Preset = "subtle" | "balanced" | "creative";
 
@@ -23,6 +23,7 @@ const presets: Record<Preset,{strength:number; guidance:number; label:string; de
 const Arrow = ({back=false}:{back?:boolean}) => <span aria-hidden>{back ? "←" : "→"}</span>;
 
 export default function Home() {
+  const cameraRef=useRef<CameraHandle>(null);
   const [photo,setPhoto]=useState<string|null>(null);
   const [originalPhoto,setOriginalPhoto]=useState<string|null>(null);
   const [generatedPhoto,setGeneratedPhoto]=useState<string|null>(null);
@@ -46,14 +47,10 @@ export default function Home() {
     setStrength(.45); setGuidanceScale(6.5); setStep(1);
   };
 
-  const getPhoto=async()=>{
-    try{
-      const response=await fetch("http://localhost:5000/take_photo");
-      if(!response.ok) throw new Error("Photo capture failed");
-      const blob=await response.blob();
-      const url=URL.createObjectURL(blob);
-      setPhoto(url); setOriginalPhoto(url); setStopCamera(true); setStep(2);
-    }catch(error){ console.error(error); }
+  const getPhoto=()=>{
+    const captured=cameraRef.current?.capture();
+    if(!captured) return;
+    setPhoto(captured); setOriginalPhoto(captured); setStopCamera(true); setStep(2);
   };
 
   const choosePreset=(key:Preset)=>{
@@ -114,7 +111,7 @@ export default function Home() {
     <section className="preview-panel">
       <div className="preview-top"><div className="brand brand-light"><span className="brand-mark">AI</span><span>DataLab <b>AI Artist</b></span></div><span className="live-pill"><i/> {photo?"PHOTO READY":"LIVE CAMERA"}</span></div>
       <div className="preview-frame">
-        {!photo ? <Camera stopCamera={stopCamera}/> : <img src={photo} alt="Captured photo" className="captured"/>}
+        {!photo ? <Camera ref={cameraRef} stopCamera={stopCamera}/> : <img src={photo} alt="Captured photo" className="captured"/>}
         {loading && <div className="generation-overlay"><div className="loader"/><strong>Creating your {selected?.title} image…</strong><span>Transforming your photo with AI</span></div>}
       </div>
       <div className="preview-caption">{photo ? <><span>Captured photo</span><button onClick={reset}>Retake photo</button></> : <><span>Position your subject inside the frame</span><span>Camera preview</span></>}</div>
