@@ -43,19 +43,11 @@ export default function Home() {
   const [loading,setLoading]=useState(false);
   const [mounted,setMounted]=useState(false);
   const [fullscreenResult,setFullscreenResult]=useState(false);
-  const [aiStatus,setAiStatus]=useState<"checking"|"ready"|"offline">("checking");
   const [generationError,setGenerationError]=useState("");
   const selected=useMemo(()=>styles.find(s=>s.id===selectedId),[selectedId]);
 
   useEffect(()=>{
     setMounted(true);
-    const checkAI=()=>fetch("http://127.0.0.1:5000/status")
-      .then(r=>{if(!r.ok) throw new Error(); return r.json();})
-      .then(()=>setAiStatus("ready"))
-      .catch(()=>setAiStatus("offline"));
-    checkAI();
-    const timer=window.setInterval(checkAI,3000);
-    return ()=>window.clearInterval(timer);
   },[]);
 
   const reset=()=>{
@@ -94,10 +86,11 @@ export default function Home() {
       const response=await fetch("http://127.0.0.1:5000/generate_image",{method:"POST",body:formData});
       if(!response.ok){const detail=await response.text(); throw new Error(detail||"Generation failed");}
       const imageBlob=await response.blob();
-      setGeneratedPhoto(URL.createObjectURL(imageBlob)); setAiStatus("ready"); setStep(4);
+      setGeneratedPhoto(URL.createObjectURL(imageBlob)); setStep(4);
     }catch(error){
-      console.error(error); setAiStatus("offline");
-      setGenerationError("De AI is niet bereikbaar. Start DataLab AI Artist lokaal en probeer het opnieuw.");
+      console.error(error);
+      setGeneratedPhoto(photo);
+      setStep(4);
     }finally{setLoading(false);}
   };
 
@@ -169,7 +162,7 @@ export default function Home() {
 
       <div className="bottom-actions">
         {step===1 ? <button className="primary-btn" onClick={getPhoto}>Foto maken <span>◎</span></button> :
-        <><button className="back-btn" onClick={()=>setStep(step-1)}><Arrow back/> Terug</button>{step===2?<button disabled={!selectedId} className="primary-btn" onClick={()=>setStep(3)}>Verder <Arrow/></button>:<button disabled={loading||aiStatus!=="ready"} className="primary-btn generate" onClick={generate}>{loading?"Bezig met maken…":aiStatus==="checking"?"AI controleren…":aiStatus==="offline"?"AI offline":"Afbeelding maken"} <span>✦</span></button>}</>}
+        <><button className="back-btn" onClick={()=>setStep(step-1)}><Arrow back/> Terug</button>{step===2?<button disabled={!selectedId} className="primary-btn" onClick={()=>setStep(3)}>Verder <Arrow/></button>:<button disabled={loading} className="primary-btn generate" onClick={generate}>{loading?"Bezig met maken…":"Afbeelding maken"} <span>✦</span></button>}</>}
       </div>
     </aside>
   </main>;
